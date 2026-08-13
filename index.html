@@ -96,63 +96,99 @@
     let currentStockData = null;
     let currentSymbol = "";
 
-    // Expose functions to window scope for onclick handlers
-    window.fetchStockData = async function() {
-  const urlInput = document.getElementById('apiUrl');
-  const symbolInput = document.getElementById('symbol');
-  const statusEl = document.getElementById('fetchStatus');
-
-  let baseUrl = urlInput ? urlInput.value.trim() : '';
-  const symbol = symbolInput ? symbolInput.value.trim().toUpperCase() : '';
-
-  // Strip trailing slashes or /v1 suffix
-  baseUrl = baseUrl.replace(/\/+$/, '');
-  if (baseUrl.endsWith('/v1')) {
-    baseUrl = baseUrl.slice(0, -3);
-  }
-
-  if (!baseUrl) {
-    statusEl.innerText = "❌ Please enter your Lambda Base URL.";
-    statusEl.className = "text-xs text-red-400 mt-2";
-    return;
-  }
-  if (!symbol) {
-    statusEl.innerText = "❌ Please enter a stock symbol.";
-    statusEl.className = "text-xs text-red-400 mt-2";
-    return;
-  }
-
-  statusEl.innerText = `Fetching data for ${symbol}...`;
-  statusEl.className = "text-xs text-amber-400 mt-2";
-
-  try {
-    // Standard mode fetch
-    const response = await fetch(`${baseUrl}/v1/company/${symbol}`, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json"
+    // Helper functions
+    function trimStockData(data) {
+      if (!data) return {};
+      const cleaned = JSON.parse(JSON.stringify(data));
+      if (cleaned.company) {
+        delete cleaned.company.raw_html; // Remove heavy raw HTML if present
       }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Server returned status ${response.status}`);
+      return cleaned;
     }
 
-    const companyData = await response.json();
-    currentSymbol = symbol;
-    currentStockData = { company: companyData };
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
 
-    document.getElementById('dataContext').value = JSON.stringify(currentStockData, null, 2);
-    statusEl.innerText = `✅ Loaded data for ${symbol}`;
-    statusEl.className = "text-xs text-emerald-400 mt-2";
-    
-    appendChatMessage("system", `Context updated with financial data for **${symbol}**.`);
-  } catch (err) {
-    console.error("Fetch Error:", err);
-    statusEl.innerText = `❌ CORS or Network Error: ${err.message}`;
-    statusEl.className = "text-xs text-red-400 mt-2";
-  }
-};
+    function appendChatMessage(role, text) {
+      const chatLog = document.getElementById('chatLog');
+      const wrapper = document.createElement('div');
+      
+      if (role === "user") {
+        wrapper.className = "flex justify-end";
+        wrapper.innerHTML = `<div class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm max-w-[80%]">${escapeHtml(text)}</div>`;
+      } else if (role === "assistant") {
+        wrapper.className = "flex justify-start";
+        const bubble = document.createElement('div');
+        bubble.className = "bg-gray-700 text-gray-100 px-4 py-2 rounded-xl text-sm max-w-[80%] whitespace-pre-wrap";
+        bubble.innerText = text;
+        wrapper.appendChild(bubble);
+        chatLog.appendChild(wrapper);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        return bubble;
+      } else {
+        wrapper.className = "text-center text-xs text-gray-400 my-1";
+        wrapper.innerText = text;
+      }
+
+      chatLog.appendChild(wrapper);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    // Expose functions to window scope for HTML inline handlers
+    window.fetchStockData = async function() {
+      const urlInput = document.getElementById('apiUrl');
+      const symbolInput = document.getElementById('symbol');
+      const statusEl = document.getElementById('fetchStatus');
+
+      let baseUrl = urlInput ? urlInput.value.trim() : '';
+      const symbol = symbolInput ? symbolInput.value.trim().toUpperCase() : '';
+
+      // Clean trailing slashes or /v1 suffix
+      baseUrl = baseUrl.replace(/\/+$/, '');
+      if (baseUrl.endsWith('/v1')) {
+        baseUrl = baseUrl.slice(0, -3);
+      }
+
+      if (!baseUrl) {
+        statusEl.innerText = "❌ Please enter your Lambda Base URL.";
+        statusEl.className = "text-xs text-red-400 mt-2";
+        return;
+      }
+      if (!symbol) {
+        statusEl.innerText = "❌ Please enter a stock symbol.";
+        statusEl.className = "text-xs text-red-400 mt-2";
+        return;
+      }
+
+      statusEl.innerText = `Fetching data for ${symbol}...`;
+      statusEl.className = "text-xs text-amber-400 mt-2";
+
+      try {
+        const response = await fetch(`${baseUrl}/v1/company/${symbol}`, {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+
+        const companyData = await response.json();
+        currentSymbol = symbol;
+        currentStockData = { company: companyData };
+
+        document.getElementById('dataContext').value = JSON.stringify(currentStockData, null, 2);
+        statusEl.innerText = `✅ Loaded data for ${symbol}`;
+        statusEl.className = "text-xs text-emerald-400 mt-2";
+        
+        appendChatMessage("system", `Context updated with financial data for **${symbol}**.`);
+      } catch (err) {
+        console.error("Fetch Error:", err);
+        statusEl.innerText = `❌ CORS or Network Error: ${err.message}`;
+        statusEl.className = "text-xs text-red-400 mt-2";
+      }
+    };
 
     window.initLLM = async function() {
       const statusEl = document.getElementById('engineStatus');
@@ -162,7 +198,6 @@
       statusEl.innerText = "Downloading model weights into browser memory...";
 
       try {
-        // Using lightweight Llama-3.2-1B model for fast browser load times
         const modelId = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
         
         engine = await webllm.CreateMLCEngine(modelId, {
@@ -193,17 +228,14 @@
       inputEl.value = "";
       appendChatMessage("user", prompt);
 
-      
-
-// Inside sendMessage():
-const trimmedData = trimStockData(currentStockData);
-const systemPrompt = `You are a financial analyst copilot. 
-Analyze the provided JSON financial data for ${currentSymbol}. 
+      const trimmedData = trimStockData(currentStockData);
+      const systemPrompt = `You are a financial analyst copilot. 
+Analyze the provided JSON financial data for ${currentSymbol || 'the company'}. 
 
 Guidelines:
 - Be concise and direct. Use short bullet points.
 - Focus on key financial ratios, revenue growth, debt levels, and profitability trends.
-- Keep the response under 300 words so it fits complete without getting cut off.
+- Keep responses concise so they complete fully without getting cut off.
 
 Financial Data:
 ${JSON.stringify(trimmedData)}`;
@@ -219,7 +251,7 @@ ${JSON.stringify(trimmedData)}`;
         const chunks = await engine.chat.completions.create({
           messages,
           stream: true,
-          max_tokens: 1500 // Prevents premature cutoff
+          max_tokens: 1500
         });
 
         let fullReply = "";
@@ -233,46 +265,6 @@ ${JSON.stringify(trimmedData)}`;
         assistantBubble.innerText = `❌ Chat Error: ${err.message}`;
       }
     };
-
-    function appendChatMessage(role, text) {
-      const chatLog = document.getElementById('chatLog');
-      const wrapper = document.createElement('div');
-      
-      if (role === "user") {
-        wrapper.className = "flex justify-end";
-        wrapper.innerHTML = `<div class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm max-w-[80%]">${escapeHtml(text)}</div>`;
-      } else if (role === "assistant") {
-        wrapper.className = "flex justify-start";
-        const bubble = document.createElement('div');
-        bubble.className = "bg-gray-700 text-gray-100 px-4 py-2 rounded-xl text-sm max-w-[80%] whitespace-pre-wrap";
-        bubble.innerText = text;
-        wrapper.appendChild(bubble);
-        chatLog.appendChild(wrapper);
-        chatLog.scrollTop = chatLog.scrollHeight;
-        return bubble;
-      } else {
-        wrapper.className = "text-center text-xs text-gray-400 my-1";
-        wrapper.innerText = text;
-      }
-
-      chatLog.appendChild(wrapper);
-      chatLog.scrollTop = chatLog.scrollHeight;
-    }
-
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-    // Truncate long arrays (like quarterly/annual history) to only recent years/quarters
-function trimStockData(data) {
-  if (!data) return {};
-  const cleaned = JSON.parse(JSON.stringify(data));
-  
-  // Keep only essential fields or trim long lists to last 3–4 entries
-  if (cleaned.company) {
-    delete cleaned.company.raw_html; // Remove raw HTML if present
-  }
-  return cleaned;
-}
   </script>
 </body>
 </html>
