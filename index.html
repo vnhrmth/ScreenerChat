@@ -88,15 +88,20 @@
     let currentSymbol = "";
 
     // Helper functions
-    function trimStockData(data) {
-      if (!data) return {};
-      const cleaned = JSON.parse(JSON.stringify(data));
-      if (cleaned.company) {
-        delete cleaned.company.raw_html; // Remove heavy raw HTML if present
-      }
-      return cleaned;
-    }
-
+function trimStockData(data) {
+  if (!data) return {};
+  const cleaned = JSON.parse(JSON.stringify(data));
+  if (cleaned.company) {
+    delete cleaned.company.raw_html;
+  }
+  
+  let jsonString = JSON.stringify(cleaned);
+  // Cap string payload if too long
+  if (jsonString.length > 8000) {
+    return jsonString.slice(0, 8000) + "\n...[truncated to fit model context]";
+  }
+  return jsonString;
+}
     function escapeHtml(str) {
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
