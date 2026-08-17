@@ -836,7 +836,7 @@ function selectSymbol(symbol) {
         engine = await webllm.CreateMLCEngine(modelId, {
           initProgressCallback: p => { statusEl.innerText = p.text; },
           chatOpts: {
-            context_window_size: 10000 // 👈 Increases the limit from 4096 to 8192 tokens
+            context_window_size: -1 // 👈 Increases the limit from 4096 to 8192 tokens
           }
         });
         
