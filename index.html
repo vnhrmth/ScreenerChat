@@ -444,19 +444,28 @@ async function loadEquityList() {
     }
 
 function showDropdown(results) {
-      const dd = document.getElementById('symbolDropdown');
-      if (!results.length) { dd.classList.add('hidden'); return; }
-      dropActiveIdx = -1;
-      dd.innerHTML = results.map((r, i) =>
-        `<div class="drop-item" data-symbol="${r.symbol}" data-idx="${i}">
-          <span class="drop-sym">${r.symbol}</span>
-          <span class="drop-name">${r.name}</span>
-        </div>`
-      ).join('');
-      dd.classList.remove('hidden');
-      console.log(`Showing ${results.length} suggestions`);
-    }
+  const dd = document.getElementById('symbolDropdown');
+  if (!results.length) { dd.classList.add('hidden'); return; }
+  
+  dropActiveIdx = -1;
+  dd.innerHTML = results.map((r, i) =>
+    `<div class="drop-item" data-symbol="${r.symbol}" data-idx="${i}">
+      <span class="drop-sym">${r.symbol}</span>
+      <span class="drop-name">${r.name}</span>
+    </div>`
+  ).join('');
+  
+  // Attach click listeners to all generated dropdown items
+  dd.querySelectorAll('.drop-item').forEach(item => {
+    item.addEventListener('mousedown', (e) => {
+      // Use 'mousedown' instead of 'click' so it fires before input 'blur'
+      e.preventDefault();
+      selectSymbol(item.dataset.symbol);
+    });
+  });
 
+  dd.classList.remove('hidden');
+}
     // function hideDropdown() {
     //   document.getElementById('symbolDropdown').classList.add('hidden');
     //   dropActiveIdx = -1;
@@ -468,16 +477,12 @@ function showDropdown(results) {
     }
 
 
-    function selectSymbol(symbol) {
-      const input = document.getElementById('symbol');
-      input.value = symbol;
-            // Modify your blur listener
-      document.getElementById('symbol').addEventListener('blur', () => {
-        setTimeout(() => hideDropdown(), 150);
-      });
-      fetchCompany();
-    }
-
+function selectSymbol(symbol) {
+  const input = document.getElementById('symbol');
+  input.value = symbol; // Set input value
+  hideDropdown();       // Close dropdown
+  fetchCompany();       // Fetch the company details
+}
     document.addEventListener('DOMContentLoaded', () => {
       const input = document.getElementById('symbol');
       
