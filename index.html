@@ -870,39 +870,35 @@ function selectSymbol(symbol) {
       const trimmedData = currentStockData ? JSON.parse(JSON.stringify(currentStockData)) : {};
       if (trimmedData.company?.raw_html) delete trimmedData.company.raw_html;
 
-      function deepTrim(obj, depth = 0) {
-        if (!obj || typeof obj !== 'object') return obj;
-        if (Array.isArray(obj)) {
-          if (obj.length > 20) return obj.slice(0, 20);
-          return obj.map(item => deepTrim(item, depth + 1));
-        }
-        const out = {};
-        const skipKeys = new Set(['raw_html', 'html', 'documents', 'links', 'url', 'image']);
-        for (const k of Object.keys(obj)) {
-          if (skipKeys.has(k)) continue;
-          const v = obj[k];
-          if (v && typeof v === 'object') {
-            out[k] = deepTrim(v, depth + 1);
-          } else {
-            out[k] = v;
-          }
-        }
-        return out;
-      }
+      const ratios = trimmedData?.company?.data?.overview?.top_ratios || trimmedData?.overview?.top_ratios || {};
+      const pros = (trimmedData?.company?.data?.analysis?.pros || trimmedData?.analysis?.pros || []).slice(0, 8);
+      const cons = (trimmedData?.company?.data?.analysis?.cons || trimmedData?.analysis?.cons || []).slice(0, 8);
+      const quarters = trimmedData?.company?.data?.quarters || trimmedData?.quarters || null;
 
-      const lightData = deepTrim(trimmedData);
-      const payload = JSON.stringify(lightData);
+      const lines = [];
+      if (Object.keys(ratios).length) lines.push('Key Ratios: ' + JSON.stringify(ratios));
+      if (pros.length) lines.push('Strengths: ' + pros.join('; '));
+      if (cons.length) lines.push('Risks: ' + cons.join('; '));
+      if (quarters?.columns?.length) {
+        const qLabels = quarters.columns.slice(1).join(', ');
+        const findRow = name => quarters.rows?.find(r => r[0] && String(r[0]).includes(name));
+        const sales = findRow('Sales') || findRow('Revenue');
+        const profit = findRow('Net Profit') || findRow('Operating Profit');
+        if (sales) lines.push('Sales Trend (' + qLabels + '): ' + sales.slice(1).join(', '));
+        if (profit) lines.push('Profit Trend (' + qLabels + '): ' + profit.slice(1).join(', '));
+      }
+      const payload = lines.join('\n') || JSON.stringify(trimmedData);
 
       const systemPrompt = `You are a financial analyst copilot.
-Analyze the provided JSON financial data for ${currentSymbol || 'the company'}.
+Analyze the provided financial summary for ${currentSymbol || 'the company'}.
 
 Guidelines:
 - Be concise and direct. Use short bullet points.
-- Focus on key financial ratios, revenue growth, debt levels, and profitability trends.
+- Focus on financial health, profitability, cash flow, and key risks.
 - If data is insufficient, say so explicitly.
-- Do not hallucinate numbers not present in the JSON.
+- Do not hallucinate numbers not present in the summary.
 
-Financial Data (trimmed):
+Financial Summary:
 ${payload}`;
 
       const assistantBubble = appendChatMessage("assistant", "Thinking...");
@@ -914,7 +910,7 @@ ${payload}`;
             { role: "user",   content: prompt }
           ],
           stream: true,
-          max_tokens: 1500
+          max_tokens: 2048
         });
 
         let fullReply = "";
