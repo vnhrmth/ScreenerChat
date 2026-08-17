@@ -162,7 +162,7 @@
   </style>
 </head>
 <body class="text-gray-100 min-h-screen flex flex-col">
-
+  <object id="csv-data" data="./EQUITYLIST.csv" type="text/csv" style="display:none;"></object>
   <!-- Header -->
   <header class="header-gradient px-6 py-4 flex items-center justify-between gap-4 flex-wrap sticky top-0 z-50">
     <div class="flex items-center gap-3">
@@ -404,8 +404,10 @@
 
 async function loadEquityList() {
       try {
+        
         const res = await fetch('./EQUITYLIST.csv');
         const text = await res.text();
+        console.log('Loading equity list...'+res.status+' '+res.statusText);
         const lines = text.replace(/\r/g, '').split('\n').slice(2);
         equityList = lines
           .map(line => {
@@ -416,11 +418,16 @@ async function loadEquityList() {
           .filter(r => r && r.symbol);
         console.log(`Equity list loaded with ${equityList.length} entries`);
       } catch(e) { console.warn('Could not load equity list', e); }
+    }
 
     function searchEquity(query) {
       if (!query || query.length < 1) return [];
       const q = query.toUpperCase().trim();
       try {
+        if (equityList.length === 0) {
+          loadEquityList();
+        }
+        console.log(`equityList has ${equityList.length} entries, searching for "${query}" (q=${q})`);
         const results = equityList.filter(r =>
           r.symbol.includes(q) || r.name.toUpperCase().includes(q)
         );
@@ -465,6 +472,7 @@ function showDropdown(results) {
 
     document.addEventListener('DOMContentLoaded', () => {
       const input = document.getElementById('symbol');
+      
       input.addEventListener('input', () => {
         const q = input.value.trim();
         showDropdown(q.length >= 1 ? searchEquity(q) : []);
