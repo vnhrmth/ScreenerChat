@@ -420,16 +420,21 @@ async function loadEquityList() {
     function searchEquity(query) {
       if (!query || query.length < 1) return [];
       const q = query.toUpperCase().trim();
-      const results = equityList.filter(r =>
-        r.symbol.includes(q) || r.name.toUpperCase().includes(q)
-      );
-      console.log(`Searching for "${query}": found ${results.length} matches`);
-      results.sort((a, b) => {
-        const aExact = a.symbol.startsWith(q) ? 0 : 1;
-        const bExact = b.symbol.startsWith(q) ? 0 : 1;
-        return aExact - bExact || a.symbol.localeCompare(b.symbol);
-      });
-      return results.slice(0, 20);
+      try {
+        const results = equityList.filter(r =>
+          r.symbol.includes(q) || r.name.toUpperCase().includes(q)
+        );
+        console.log(`Searching for "${query}" (q=${q}) with ${equityList.length} entries, found ${results.length} matches`);
+        results.sort((a, b) => {
+          const aExact = a.symbol.startsWith(q) ? 0 : 1;
+          const bExact = b.symbol.startsWith(q) ? 0 : 1;
+          return aExact - bExact || a.symbol.localeCompare(b.symbol);
+        });
+        return results.slice(0, 20);
+      } catch(e) {
+        console.error('searchEquity error:', e);
+        return [];
+      }
     }
 
 function showDropdown(results) {
