@@ -420,9 +420,9 @@
 
     function searchEquity(query) {
       if (!query || query.length < 1) return [];
-      const q = query.toUpperCase();
+      const q = query.toUpperCase().trim();
       const results = equityList.filter(r =>
-        r.symbol.startsWith(q) || r.name.toUpperCase().includes(q)
+        r.symbol.includes(q) || r.name.toUpperCase().includes(q)
       );
       results.sort((a, b) => {
         const aExact = a.symbol.startsWith(q) ? 0 : 1;
@@ -612,6 +612,17 @@
       const symbolInput = document.getElementById('symbol');
       const symbol = (symbolInput ? symbolInput.value.trim().toUpperCase() : '');
       if (!symbol) { setStatus('fetchStatus', 'Please enter a stock symbol.', 'error'); return; }
+
+      if (equityList.length && !equityList.find(r => r.symbol === symbol)) {
+        const suggestions = searchEquity(symbol);
+        if (suggestions.length) {
+          setStatus('fetchStatus', `"${symbol}" not found. Did you mean: ${suggestions.slice(0,3).map(r=>r.symbol).join(', ')}?`, 'error');
+        } else {
+          setStatus('fetchStatus', `"${symbol}" not found in equity list.`, 'error');
+        }
+        showDropdown(suggestions);
+        return;
+      }
 
       setStatus('fetchStatus', `Fetching ${symbol}...`, 'warn');
       try {
