@@ -432,7 +432,7 @@ async function loadEquityList() {
       return results.slice(0, 20);
     }
 
-    function showDropdown(results) {
+function showDropdown(results) {
       const dd = document.getElementById('symbolDropdown');
       if (!results.length) { dd.classList.add('hidden'); return; }
       dropActiveIdx = -1;
@@ -443,7 +443,7 @@ async function loadEquityList() {
         </div>`
       ).join('');
       dd.classList.remove('hidden');
-      console.log(`Showing ${results.length} suggestions for "${query}"`);
+      console.log(`Showing ${results.length} suggestions`);
     }
 
     function hideDropdown() {
