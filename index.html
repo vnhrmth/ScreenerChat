@@ -6,187 +6,344 @@
   <title>Screener Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0a0f1e; }
 
-  <!-- Header Bar -->
-  <header class="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between gap-4 flex-wrap shadow-md">
-    <h1 class="text-lg font-bold text-emerald-400 flex items-center gap-2">
-      <span>📈</span> Screener Dashboard
-    </h1>
+    .glass {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .glass-strong {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .gradient-border {
+      position: relative;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid transparent;
+      background-clip: padding-box;
+    }
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(16,185,129,0.3), rgba(59,130,246,0.2), rgba(139,92,246,0.15));
+      z-index: -1;
+    }
+
+    .glow-emerald { box-shadow: 0 0 20px rgba(16,185,129,0.15); }
+    .glow-blue    { box-shadow: 0 0 20px rgba(59,130,246,0.15); }
+
+    input, textarea {
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus {
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+    }
+
+    .tab-btn { transition: all 0.2s; }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    .metric-card {
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card::after {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 4px 15px rgba(16,185,129,0.3);
+      transition: all 0.2s;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-blue {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      box-shadow: 0 4px 15px rgba(59,130,246,0.3);
+      transition: all 0.2s;
+    }
+    .btn-blue:hover {
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+      transform: translateY(-1px);
+    }
+
+    .quick-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all 0.2s;
+    }
+    .quick-btn:hover {
+      background: rgba(16,185,129,0.15);
+      border-color: rgba(16,185,129,0.4);
+      color: #34d399;
+    }
+
+    .chat-bubble-user {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 4px 12px rgba(16,185,129,0.25);
+    }
+    .chat-bubble-ai {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .header-gradient {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(59,130,246,0.06) 100%);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp 0.35s ease forwards; }
+
+    details summary::-webkit-details-marker { display: none; }
+    details summary::marker { display: none; }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="header-gradient px-6 py-4 flex items-center justify-between gap-4 flex-wrap sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-sm shadow-lg">
+        📈
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-white tracking-tight">Screener Dashboard</h1>
+        <p class="text-[10px] text-gray-400 tracking-wider uppercase">AI-Powered Financial Analysis</p>
+      </div>
+    </div>
     <div class="flex items-center gap-2">
-      <label for="apiUrl" class="text-xs text-gray-400 whitespace-nowrap">Lambda URL:</label>
-      <input id="apiUrl" type="url" value="https://knlcqtlujajjlmwocwuga5pub40kuyjn.lambda-url.ap-south-1.on.aws/" 
-             class="bg-gray-900 border border-gray-700 text-sm rounded-lg px-3 py-1.5 w-72 focus:outline-none focus:border-emerald-500 text-gray-200">
+      <label for="apiUrl" class="text-[11px] text-gray-500 whitespace-nowrap font-medium">Lambda URL</label>
+      <input id="apiUrl" type="url" value="https://knlcqtlujajjlmwocwuga5pub40kuyjn.lambda-url.ap-south-1.on.aws/"
+             class="bg-white/5 border border-white/10 text-xs rounded-xl px-3 py-2 w-72 focus:outline-none focus:border-emerald-500/60 text-gray-300 placeholder-gray-600">
     </div>
   </header>
 
   <!-- Main Dashboard -->
-  <main class="max-w-7xl mx-auto w-full flex-1 p-4 grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-5">
+  <main class="max-w-[1400px] mx-auto w-full flex-1 p-5 grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5">
 
-    <!-- Left Column: Controls, Metrics & Raw Data -->
+    <!-- Left Column -->
     <section class="flex flex-col gap-4">
 
-      <!-- SearchBar Card -->
-      <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg">
-        <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Company Lookup</h2>
+      <!-- Company Lookup -->
+      <div class="glass rounded-2xl p-5 fade-in">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-1 h-4 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600"></div>
+          <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-widest">Company Lookup</h2>
+        </div>
         <div class="flex gap-2">
-          <input id="symbol" type="text" placeholder="Enter ticker..." 
-                 class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-full uppercase focus:outline-none focus:border-emerald-500 text-gray-200">
-          <button id="fetchBtn" onclick="fetchCompany()" 
-                  class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition shadow-md">
+          <input id="symbol" type="text" placeholder="Enter ticker symbol..."
+                 class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm w-full uppercase focus:outline-none focus:border-emerald-500/60 text-white placeholder-gray-600 font-medium">
+          <button id="fetchBtn" onclick="fetchCompany()"
+                  class="btn-primary text-white font-semibold px-5 py-2.5 rounded-xl text-sm whitespace-nowrap">
             Fetch
           </button>
         </div>
-        <div class="flex flex-wrap gap-2 mt-3">
-          <span class="text-[10px] text-gray-400 mr-1 self-center">Quick:</span>
-          <button onclick="quickFetch('RELIANCE')" class="text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-0.5 rounded transition">RELIANCE</button>
-          <button onclick="quickFetch('TCS')" class="text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-0.5 rounded transition">TCS</button>
-          <button onclick="quickFetch('INFY')" class="text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-0.5 rounded transition">INFY</button>
-          <button onclick="quickFetch('HDFCBANK')" class="text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-0.5 rounded transition">HDFCBANK</button>
-          <button onclick="quickFetch('ITC')" class="text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-0.5 rounded transition">ITC</button>
+        <div class="flex flex-wrap gap-1.5 mt-3">
+          <span class="text-[10px] text-gray-600 self-center font-medium">Quick:</span>
+          <button onclick="quickFetch('RELIANCE')" class="quick-btn text-[10px] text-gray-400 px-2.5 py-1 rounded-lg font-medium">RELIANCE</button>
+          <button onclick="quickFetch('TCS')"      class="quick-btn text-[10px] text-gray-400 px-2.5 py-1 rounded-lg font-medium">TCS</button>
+          <button onclick="quickFetch('INFY')"     class="quick-btn text-[10px] text-gray-400 px-2.5 py-1 rounded-lg font-medium">INFY</button>
+          <button onclick="quickFetch('HDFCBANK')" class="quick-btn text-[10px] text-gray-400 px-2.5 py-1 rounded-lg font-medium">HDFCBANK</button>
+          <button onclick="quickFetch('ITC')"      class="quick-btn text-[10px] text-gray-400 px-2.5 py-1 rounded-lg font-medium">ITC</button>
         </div>
-        <p id="fetchStatus" class="text-xs text-gray-400 mt-2 h-4"></p>
+        <p id="fetchStatus" class="text-xs text-gray-500 mt-3 h-4 font-medium"></p>
       </div>
 
-      <!-- Compare Card -->
-      <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg">
-        <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Compare Companies</h2>
+      <!-- Compare -->
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-1 h-4 rounded-full bg-gradient-to-b from-blue-400 to-blue-600"></div>
+          <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-widest">Compare Companies</h2>
+        </div>
         <div class="flex gap-2">
-          <input id="compareSymbols" type="text" placeholder="TCS,INFY,RELIANCE" 
-                 class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-emerald-500 text-gray-200">
-          <button onclick="compareCompanies()" 
-                  class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition shadow-md">
+          <input id="compareSymbols" type="text" placeholder="TCS, INFY, RELIANCE"
+                 class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:border-blue-500/60 text-white placeholder-gray-600">
+          <button onclick="compareCompanies()"
+                  class="btn-blue text-white font-semibold px-5 py-2.5 rounded-xl text-sm whitespace-nowrap">
             Compare
           </button>
         </div>
-        <p id="compareStatus" class="text-xs text-gray-400 mt-2 h-4"></p>
+        <p id="compareStatus" class="text-xs text-gray-500 mt-3 h-4 font-medium"></p>
       </div>
 
       <!-- Metric Cards -->
       <div id="metricCards" class="grid grid-cols-2 gap-3 hidden">
-        <div class="bg-gray-800 p-3 rounded-xl border border-gray-700 shadow-md">
-          <p class="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Market Cap</p>
-          <p id="metricMktCap" class="text-sm font-bold text-white">--</p>
+        <div class="metric-card glass rounded-2xl p-4">
+          <p class="text-[9px] uppercase tracking-widest text-gray-500 mb-1.5 font-semibold">Market Cap</p>
+          <p id="metricMktCap" class="text-base font-bold text-white">--</p>
         </div>
-        <div class="bg-gray-800 p-3 rounded-xl border border-gray-700 shadow-md">
-          <p class="text-[10px] uppercase tracking-wider text-gray-400 mb-1">P/E Ratio</p>
-          <p id="metricPE" class="text-sm font-bold text-white">--</p>
+        <div class="metric-card glass rounded-2xl p-4">
+          <p class="text-[9px] uppercase tracking-widest text-gray-500 mb-1.5 font-semibold">P/E Ratio</p>
+          <p id="metricPE" class="text-base font-bold text-white">--</p>
         </div>
-        <div class="bg-gray-800 p-3 rounded-xl border border-gray-700 shadow-md">
-          <p class="text-[10px] uppercase tracking-wider text-gray-400 mb-1">ROCE</p>
-          <p id="metricROCE" class="text-sm font-bold text-white">--</p>
+        <div class="metric-card glass rounded-2xl p-4">
+          <p class="text-[9px] uppercase tracking-widest text-gray-500 mb-1.5 font-semibold">ROCE</p>
+          <p id="metricROCE" class="text-base font-bold text-emerald-400">--</p>
         </div>
-        <div class="bg-gray-800 p-3 rounded-xl border border-gray-700 shadow-md">
-          <p class="text-[10px] uppercase tracking-wider text-gray-400 mb-1">ROE</p>
-          <p id="metricROE" class="text-sm font-bold text-white">--</p>
+        <div class="metric-card glass rounded-2xl p-4">
+          <p class="text-[9px] uppercase tracking-widest text-gray-500 mb-1.5 font-semibold">ROE</p>
+          <p id="metricROE" class="text-base font-bold text-blue-400">--</p>
         </div>
       </div>
 
       <!-- Structured Analytics -->
-      <div id="analyticsPanel" class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-md hidden">
-        <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Structured Analytics</h2>
-        <div class="space-y-2 text-xs">
+      <div id="analyticsPanel" class="glass rounded-2xl p-5 hidden">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-1 h-4 rounded-full bg-gradient-to-b from-purple-400 to-purple-600"></div>
+          <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-widest">Analytics</h2>
+        </div>
+        <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-gray-400">Financial Health</span>
-            <span id="badgeHealth" class="px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 text-[10px]">--</span>
+            <span class="text-xs text-gray-400 font-medium">Financial Health</span>
+            <span id="badgeHealth" class="px-2.5 py-0.5 rounded-full bg-white/5 text-gray-400 text-[10px] font-semibold border border-white/10">--</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-gray-400">Profitability</span>
-            <span id="badgeProfit" class="px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 text-[10px]">--</span>
+            <span class="text-xs text-gray-400 font-medium">Profitability</span>
+            <span id="badgeProfit" class="px-2.5 py-0.5 rounded-full bg-white/5 text-gray-400 text-[10px] font-semibold border border-white/10">--</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-gray-400">Cash Flow</span>
-            <span id="badgeCash" class="px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 text-[10px]">--</span>
+            <span class="text-xs text-gray-400 font-medium">Cash Flow</span>
+            <span id="badgeCash" class="px-2.5 py-0.5 rounded-full bg-white/5 text-gray-400 text-[10px] font-semibold border border-white/10">--</span>
           </div>
         </div>
       </div>
 
       <!-- Company Data Tabs -->
-      <div id="companyTabs" class="bg-gray-800 rounded-xl border border-gray-700 shadow-md hidden">
-        <div class="flex border-b border-gray-700 overflow-x-auto">
-          <button onclick="switchTab('ratios')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="ratios">Ratios</button>
-          <button onclick="switchTab('quarters')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="quarters">Quarters</button>
-          <button onclick="switchTab('profit-loss')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="profit-loss">P&L</button>
-          <button onclick="switchTab('balance-sheet')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="balance-sheet">Balance Sheet</button>
-          <button onclick="switchTab('cash-flow')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="cash-flow">Cash Flow</button>
-          <button onclick="switchTab('shareholding')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="shareholding">Shareholding</button>
-          <button onclick="switchTab('documents')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="documents">Documents</button>
+      <div id="companyTabs" class="glass rounded-2xl overflow-hidden hidden">
+        <div class="flex border-b border-white/8 overflow-x-auto bg-white/2 px-1 pt-1 gap-0.5">
+          <button onclick="switchTab('ratios')"       class="tab-btn px-3 py-2 text-[10px] font-semibold text-gray-500 rounded-t-lg border-b-2 border-transparent whitespace-nowrap" data-tab="ratios">Ratios</button>
+          <button onclick="switchTab('quarters')"     class="tab-btn px-3 py-2 text-[10px] font-semibold text-gray-500 rounded-t-lg border-b-2 border-transparent whitespace-nowrap" data-tab="quarters">Quarters</button>
+          <button onclick="switchTab('profit-loss')"  class="tab-btn px-3 py-2 text-[10px] font-semibold text-gray-500 rounded-t-lg border-b-2 border-transparent whitespace-nowrap" data-tab="profit-loss">P&amp;L</button>
+          <button onclick="switchTab('balance-sheet')" class="tab-btn px-3 py-2 text-[10px] font-semibold text-gray-500 rounded-t-lg border-b-2 border-transparent whitespace-nowrap" data-tab="balance-sheet">Balance Sheet</button>
+          <button onclick="switchTab('cash-flow')"    class="tab-btn px-3 py-2 text-[10px] font-semibold text-gray-500 rounded-t-lg border-b-2 border-transparent whitespace-nowrap" data-tab="cash-flow">Cash Flow</button>
+          <button onclick="switchTab('shareholding')" class="tab-btn px-3 py-2 text-[10px] font-semibold text-gray-500 rounded-t-lg border-b-2 border-transparent whitespace-nowrap" data-tab="shareholding">Shareholding</button>
+          <button onclick="switchTab('documents')"    class="tab-btn px-3 py-2 text-[10px] font-semibold text-gray-500 rounded-t-lg border-b-2 border-transparent whitespace-nowrap" data-tab="documents">Documents</button>
         </div>
-        <div class="p-3">
-          <div id="tabContent" class="text-xs text-gray-300 max-h-64 overflow-y-auto">
+        <div class="p-4">
+          <div id="tabContent" class="text-xs text-gray-400 max-h-72 overflow-y-auto">
             Select a tab to view data.
           </div>
         </div>
       </div>
 
-      <!-- Raw Data Collapsible -->
-      <details class="bg-gray-800 rounded-xl border border-gray-700 shadow-md">
-        <summary class="p-4 text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer select-none hover:text-gray-100 transition">
-          Raw JSON Data
+      <!-- Raw Data -->
+      <details class="glass rounded-2xl overflow-hidden group">
+        <summary class="px-5 py-4 text-[10px] font-semibold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-gray-300 transition flex items-center justify-between">
+          <span>Raw JSON</span>
+          <span class="text-gray-600 group-open:rotate-180 transition-transform duration-200 text-xs">▾</span>
         </summary>
         <div class="px-4 pb-4">
-          <textarea id="dataContext" readonly 
-                    placeholder="Fetched JSON will appear here..." 
-                    class="w-full h-64 bg-gray-900 border border-gray-700 rounded-lg p-3 text-[10px] font-mono text-gray-300 resize-none focus:outline-none"></textarea>
+          <textarea id="dataContext" readonly placeholder="Fetched JSON will appear here..."
+                    class="w-full h-56 bg-black/20 border border-white/8 rounded-xl p-3 text-[10px] font-mono text-gray-400 resize-none focus:outline-none leading-relaxed"></textarea>
         </div>
       </details>
     </section>
 
-    <!-- Right Column: Charts & Chat -->
+    <!-- Right Column -->
     <section class="flex flex-col gap-5">
 
       <!-- Chart Card -->
-      <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg">
-        <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Financial Trends (Sales vs Profit)</h2>
-        <div class="relative h-64">
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center gap-2">
+            <div class="w-1 h-4 rounded-full bg-gradient-to-b from-emerald-400 to-blue-500"></div>
+            <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-widest">Financial Trends</h2>
+          </div>
+          <div class="flex items-center gap-3 text-[10px] text-gray-500">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Sales</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>Profit</span>
+          </div>
+        </div>
+        <div class="relative h-60">
           <canvas id="trendChart"></canvas>
         </div>
       </div>
 
       <!-- Chat Panel -->
-      <div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg flex flex-col flex-1 min-h-[420px]">
-        
+      <div class="glass rounded-2xl flex flex-col flex-1 min-h-[460px] overflow-hidden">
+
         <!-- Chat Header -->
-        <div class="p-4 border-b border-gray-700 flex items-center justify-between">
-          <div>
-            <h2 class="text-sm font-semibold text-gray-200">AI Financial Analyst</h2>
-            <p id="engineStatus" class="text-xs text-amber-400 mt-0.5">Engine not initialized</p>
+        <div class="px-5 py-4 border-b border-white/8 flex items-center justify-between bg-white/2">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm shadow-lg">🤖</div>
+            <div>
+              <h2 class="text-sm font-semibold text-white">AI Financial Analyst</h2>
+              <p id="engineStatus" class="text-[10px] text-amber-400 mt-0.5 font-medium">Engine not initialized</p>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span id="statusDot" class="relative flex h-2.5 w-2.5">
-              <span id="pulseDot" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-500 opacity-0"></span>
-              <span id="coreDot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-gray-500"></span>
-            </span>
-            <span id="engineLabel" class="text-[10px] text-gray-400 uppercase tracking-wide">Offline</span>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+              <span id="statusDot" class="relative flex h-2 w-2">
+                <span id="pulseDot" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-500 opacity-0"></span>
+                <span id="coreDot" class="relative inline-flex rounded-full h-2 w-2 bg-gray-600"></span>
+              </span>
+              <span id="engineLabel" class="text-[9px] text-gray-500 uppercase tracking-widest font-semibold">Offline</span>
+            </div>
+            <button id="initLlmBtn" onclick="initLLM()"
+                    class="btn-blue text-white px-4 py-2 rounded-xl text-[11px] font-semibold">
+              Load LLM
+            </button>
           </div>
-          <button id="initLlmBtn" onclick="initLLM()" 
-                  class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition shadow-md">
-            Load LLM Engine
-          </button>
         </div>
 
         <!-- Suggested Prompts -->
-        <div id="suggestedPrompts" class="px-4 pt-3 pb-1 flex flex-wrap gap-2 hidden">
-          <button onclick="sendSuggested('Is this company financially healthy?')" class="text-[11px] bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-full transition border border-gray-600">Is this company financially healthy?</button>
-          <button onclick="sendSuggested('What are the key risks?')" class="text-[11px] bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-full transition border border-gray-600">What are the key risks?</button>
-          <button onclick="sendSuggested('Analyze cash flow trends')" class="text-[11px] bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-full transition border border-gray-600">Analyze cash flow trends</button>
+        <div id="suggestedPrompts" class="px-4 pt-3 pb-2 flex flex-wrap gap-2 hidden border-b border-white/5">
+          <button onclick="sendSuggested('Is this company financially healthy?')"
+                  class="text-[10px] bg-white/5 hover:bg-emerald-500/15 text-gray-400 hover:text-emerald-300 px-3 py-1.5 rounded-full transition border border-white/10 hover:border-emerald-500/30 font-medium">
+            Is this company financially healthy?
+          </button>
+          <button onclick="sendSuggested('What are the key risks?')"
+                  class="text-[10px] bg-white/5 hover:bg-emerald-500/15 text-gray-400 hover:text-emerald-300 px-3 py-1.5 rounded-full transition border border-white/10 hover:border-emerald-500/30 font-medium">
+            Key risks?
+          </button>
+          <button onclick="sendSuggested('Analyze cash flow trends')"
+                  class="text-[10px] bg-white/5 hover:bg-emerald-500/15 text-gray-400 hover:text-emerald-300 px-3 py-1.5 rounded-full transition border border-white/10 hover:border-emerald-500/30 font-medium">
+            Cash flow trends
+          </button>
         </div>
 
         <!-- Chat Log -->
-        <div id="chatLog" class="flex-1 p-4 overflow-y-auto space-y-3 min-h-[240px] max-h-[360px]">
-          <div class="text-center text-xs text-gray-400 mt-8">
-            Fetch a stock symbol and load the LLM engine to start analyzing.
+        <div id="chatLog" class="flex-1 p-5 overflow-y-auto space-y-4 min-h-[240px] max-h-[380px]">
+          <div class="flex flex-col items-center justify-center h-full gap-3 py-8">
+            <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-2xl border border-white/8">💬</div>
+            <p class="text-xs text-gray-500 text-center max-w-[200px] leading-relaxed">Fetch a stock symbol and load the LLM engine to start analyzing</p>
           </div>
         </div>
 
         <!-- Chat Input -->
-        <div class="p-3 bg-gray-900 border-t border-gray-700 flex gap-2">
+        <div class="p-4 border-t border-white/8 bg-black/10 flex gap-3">
           <input id="userInput" type="text" placeholder="Ask about financials, ratios, or risks..." disabled
                  onkeydown="if(event.key === 'Enter') sendMessage()"
-                 class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-emerald-500 disabled:opacity-50 text-gray-200">
-          <button id="sendBtn" onclick="sendMessage()" disabled 
-                  class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-md disabled:opacity-50">
+                 class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:border-emerald-500/50 disabled:opacity-40 text-gray-200 placeholder-gray-600">
+          <button id="sendBtn" onclick="sendMessage()" disabled
+                  class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
             Send
           </button>
         </div>
@@ -202,7 +359,6 @@
     let currentSymbol = "";
     let trendChart = null;
     let currentTab = 'ratios';
-    let sectorsCache = null;
 
     function getBaseUrl() {
       const el = document.getElementById('apiUrl');
@@ -223,28 +379,31 @@
     }
 
     function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     function appendChatMessage(role, text) {
       const chatLog = document.getElementById('chatLog');
+      const placeholder = chatLog.querySelector('.flex.flex-col.items-center');
+      if (placeholder) placeholder.remove();
+
       const wrapper = document.createElement('div');
-      
+
       if (role === "user") {
         wrapper.className = "flex justify-end";
-        wrapper.innerHTML = `<div class="bg-emerald-600 text-white px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm max-w-[85%] shadow-md">${escapeHtml(text)}</div>`;
+        wrapper.innerHTML = `<div class="chat-bubble-user text-white px-4 py-3 rounded-2xl rounded-tr-sm text-sm max-w-[85%] font-medium">${escapeHtml(text)}</div>`;
       } else if (role === "assistant") {
         wrapper.className = "flex justify-start";
         const bubble = document.createElement('div');
-        bubble.className = "bg-gray-700 text-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-sm text-sm max-w-[85%] whitespace-pre-wrap shadow-md border border-gray-600";
+        bubble.className = "chat-bubble-ai text-gray-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%] whitespace-pre-wrap leading-relaxed";
         bubble.innerText = text;
         wrapper.appendChild(bubble);
         chatLog.appendChild(wrapper);
         chatLog.scrollTop = chatLog.scrollHeight;
         return bubble;
       } else {
-        wrapper.className = "text-center text-[11px] text-gray-400 my-1";
-        wrapper.innerText = text;
+        wrapper.className = "flex justify-center";
+        wrapper.innerHTML = `<span class="text-[10px] text-gray-600 bg-white/5 px-3 py-1 rounded-full border border-white/8 font-medium">${escapeHtml(text)}</span>`;
       }
 
       chatLog.appendChild(wrapper);
@@ -255,7 +414,7 @@
       const el = document.getElementById(id);
       if (!el) return;
       el.innerText = msg;
-      el.className = `text-xs mt-2 ${type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : type === 'warn' ? 'text-amber-400' : 'text-gray-400'}`;
+      el.className = `text-xs mt-2 font-medium ${type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : type === 'warn' ? 'text-amber-400' : 'text-gray-500'}`;
     }
 
     function quickFetch(symbol) {
@@ -264,19 +423,19 @@
     }
     window.quickFetch = quickFetch;
 
-    function renderTable(data, title) {
-      if (!data || typeof data !== 'object') return '<p class="text-gray-400">No data</p>';
+    function renderTable(data) {
+      if (!data || typeof data !== 'object') return '<p class="text-gray-500 text-xs">No data</p>';
       const rows = Array.isArray(data) ? data : [data];
-      if (!rows.length) return '<p class="text-gray-400">Empty</p>';
+      if (!rows.length) return '<p class="text-gray-500 text-xs">Empty</p>';
       const keys = Object.keys(rows[0]);
-      let html = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="text-gray-400 border-b border-gray-700">`;
-      keys.forEach(k => html += `<th class="py-1.5 px-2 text-[10px] uppercase tracking-wider font-medium">${escapeHtml(k)}</th>`);
+      let html = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-white/10">`;
+      keys.forEach(k => html += `<th class="py-2 px-3 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">${escapeHtml(k)}</th>`);
       html += `</tr></thead><tbody>`;
-      rows.slice(0, 50).forEach(row => {
-        html += `<tr class="border-b border-gray-700/50 hover:bg-gray-700/20">`;
+      rows.slice(0, 50).forEach((row, i) => {
+        html += `<tr class="border-b border-white/5 ${i % 2 === 0 ? '' : 'bg-white/2'} hover:bg-white/5 transition-colors">`;
         keys.forEach(k => {
           const val = row[k];
-          html += `<td class="py-1.5 px-2 text-[11px] text-gray-300">${escapeHtml(val == null ? '--' : typeof val === 'object' ? JSON.stringify(val) : String(val))}</td>`;
+          html += `<td class="py-2 px-3 text-gray-300 whitespace-nowrap">${escapeHtml(val == null ? '--' : typeof val === 'object' ? JSON.stringify(val) : String(val))}</td>`;
         });
         html += `</tr>`;
       });
@@ -285,21 +444,17 @@
     }
 
     function renderTableFromColumns(columns, rows) {
-      if (!columns || !rows || !rows.length) return '<p class="text-gray-400">No data</p>';
-      let html = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="text-gray-400 border-b border-gray-700">`;
-      columns.forEach(col => html += `<th class="py-1.5 px-2 text-[10px] uppercase tracking-wider font-medium whitespace-nowrap">${escapeHtml(col)}</th>`);
+      if (!columns || !rows || !rows.length) return '<p class="text-gray-500 text-xs">No data</p>';
+      let html = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-white/10 sticky top-0 bg-[#0a0f1e]">`;
+      columns.forEach(col => html += `<th class="py-2 px-3 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">${escapeHtml(col)}</th>`);
       html += `</tr></thead><tbody>`;
-      rows.slice(0, 100).forEach(row => {
-        html += `<tr class="border-b border-gray-700/50 hover:bg-gray-700/20">`;
-        if (Array.isArray(row)) {
-          row.forEach(val => {
-            html += `<td class="py-1.5 px-2 text-[11px] text-gray-300 whitespace-nowrap">${escapeHtml(val == null ? '--' : typeof val === 'object' ? JSON.stringify(val) : String(val))}</td>`;
-          });
-        } else if (row && typeof row === 'object') {
-          Object.values(row).forEach(val => {
-            html += `<td class="py-1.5 px-2 text-[11px] text-gray-300 whitespace-nowrap">${escapeHtml(val == null ? '--' : typeof val === 'object' ? JSON.stringify(val) : String(val))}</td>`;
-          });
-        }
+      rows.slice(0, 100).forEach((row, i) => {
+        html += `<tr class="border-b border-white/5 ${i % 2 === 0 ? '' : 'bg-white/2'} hover:bg-white/5 transition-colors">`;
+        const vals = Array.isArray(row) ? row : Object.values(row);
+        vals.forEach((val, ci) => {
+          const isFirst = ci === 0;
+          html += `<td class="py-2 px-3 whitespace-nowrap ${isFirst ? 'text-gray-300 font-medium' : 'text-gray-400'}">${escapeHtml(val == null ? '--' : typeof val === 'object' ? JSON.stringify(val) : String(val))}</td>`;
+        });
         html += `</tr>`;
       });
       html += `</tbody></table></div>`;
@@ -334,14 +489,13 @@
         currentStockData = response;
 
         document.getElementById('dataContext').value = JSON.stringify(currentStockData, null, 2);
-        setStatus('fetchStatus', `Loaded ${symbol}`, 'success');
+        setStatus('fetchStatus', `✓ Loaded ${symbol}`, 'success');
         appendChatMessage("system", `Context updated with financial data for ${symbol}.`);
         updateMetrics(data);
         updateChart(data);
         updateAnalytics(data);
-        
-        const tabs = document.getElementById('companyTabs');
-        tabs.classList.remove('hidden');
+
+        document.getElementById('companyTabs').classList.remove('hidden');
         switchTab('ratios', symbol);
       } catch (err) {
         console.error('Fetch Error:', err);
@@ -361,10 +515,14 @@
       currentTab = tab;
       document.querySelectorAll('.tab-btn').forEach(btn => {
         const isActive = btn.dataset.tab === tab;
-        btn.className = `tab-btn px-3 py-2 text-[11px] font-medium border-b-2 ${isActive ? 'text-emerald-400 border-emerald-500' : 'text-gray-300 border-transparent hover:text-white'}`;
+        btn.className = `tab-btn px-3 py-2 text-[10px] font-semibold rounded-t-lg border-b-2 whitespace-nowrap transition-colors ${
+          isActive
+            ? 'text-emerald-400 border-emerald-500 bg-white/5'
+            : 'text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/3'
+        }`;
       });
       const content = document.getElementById('tabContent');
-      content.innerHTML = '<p class="text-gray-400">Loading...</p>';
+      content.innerHTML = '<p class="text-gray-600 text-xs animate-pulse">Loading...</p>';
       try {
         const response = await apiFetch(`/company/${symbol}/${tab}`);
         const src = response?.company?.data || response?.data || response;
@@ -372,22 +530,22 @@
         const section = src?.[key] || src;
 
         if (tab === 'documents' && section && Array.isArray(section.links)) {
-          let html = '<div class="space-y-1">';
+          let html = '<div class="space-y-2">';
           section.links.forEach(link => {
             if (link.href) {
-              html += `<a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer" class="block text-emerald-400 hover:text-emerald-300 truncate">${escapeHtml(link.text || link.href)}</a>`;
+              html += `<a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 text-xs font-medium truncate group"><span class="text-gray-600 group-hover:text-emerald-500">↗</span>${escapeHtml(link.text || link.href)}</a>`;
             } else {
-              html += `<p class="text-gray-400">${escapeHtml(link.text || '')}</p>`;
+              html += `<p class="text-gray-500 text-xs">${escapeHtml(link.text || '')}</p>`;
             }
           });
           html += '</div>';
           content.innerHTML = html;
         } else {
           const rendered = tryRenderAsTable(section);
-          content.innerHTML = rendered || `<pre class="text-[10px] text-gray-300 whitespace-pre-wrap">${escapeHtml(JSON.stringify(section, null, 2))}</pre>`;
+          content.innerHTML = rendered || `<pre class="text-[10px] text-gray-400 whitespace-pre-wrap leading-relaxed font-mono">${escapeHtml(JSON.stringify(section, null, 2))}</pre>`;
         }
       } catch (err) {
-        content.innerHTML = `<p class="text-red-400">Failed to load ${tab}: ${err.message}</p>`;
+        content.innerHTML = `<p class="text-red-400 text-xs">Failed to load ${tab}: ${err.message}</p>`;
       }
     };
 
@@ -401,7 +559,7 @@
         const rows = data?.data || data?.comparison || data?.companies || [];
         if (!Array.isArray(rows) || !rows.length) throw new Error('No comparison data');
         document.getElementById('dataContext').value = JSON.stringify(data, null, 2);
-        setStatus('compareStatus', `Compared ${rows.length} companies`, 'success');
+        setStatus('compareStatus', `✓ Compared ${rows.length} companies`, 'success');
         appendChatMessage("system", `Comparison loaded for ${symbols.join(', ')}.`);
       } catch (err) {
         setStatus('compareStatus', `Error: ${err.message}`, 'error');
@@ -409,33 +567,36 @@
     };
 
     function updateMetrics(data) {
-      const cards = document.getElementById('metricCards');
-      cards.classList.remove('hidden');
-      const num = (v) => {
-        if (v === null || v === undefined) return '--';
-        if (typeof v === 'number') return v.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-        return String(v);
-      };
+      document.getElementById('metricCards').classList.remove('hidden');
+      const num = v => (v === null || v === undefined) ? '--' : typeof v === 'number' ? v.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : String(v);
       const ratios = data?.overview?.top_ratios || {};
       document.getElementById('metricMktCap').innerText = num(ratios['Market Cap']);
-      document.getElementById('metricPE').innerText = num(ratios['Stock P/E']);
-      document.getElementById('metricROCE').innerText = num(ratios['ROCE']);
-      document.getElementById('metricROE').innerText = num(ratios['ROE']);
+      document.getElementById('metricPE').innerText     = num(ratios['Stock P/E']);
+      document.getElementById('metricROCE').innerText   = num(ratios['ROCE']);
+      document.getElementById('metricROE').innerText    = num(ratios['ROE']);
     }
 
     function updateAnalytics(data) {
-      const panel = document.getElementById('analyticsPanel');
-      panel.classList.remove('hidden');
+      document.getElementById('analyticsPanel').classList.remove('hidden');
       const analysis = data?.analysis || {};
       const prosCount = Array.isArray(analysis.pros) ? analysis.pros.length : 0;
       const consCount = Array.isArray(analysis.cons) ? analysis.cons.length : 0;
       const badge = (id, val) => {
         const el = document.getElementById(id);
         if (!el) return;
-        if (val === null || val === undefined) { el.innerText = '--'; el.className = 'px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 text-[10px]'; return; }
-        if (val > 0) { el.innerText = 'Positive'; el.className = 'px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-300 text-[10px] border border-emerald-700'; }
-        else if (val === 0) { el.innerText = 'Neutral'; el.className = 'px-2 py-0.5 rounded-full bg-amber-900/50 text-amber-300 text-[10px] border border-amber-700'; }
-        else { el.innerText = 'Warning'; el.className = 'px-2 py-0.5 rounded-full bg-red-900/50 text-red-300 text-[10px] border border-red-700'; }
+        if (val === null || val === undefined) {
+          el.innerText = '--';
+          el.className = 'px-2.5 py-0.5 rounded-full bg-white/5 text-gray-400 text-[10px] font-semibold border border-white/10';
+        } else if (val > 0) {
+          el.innerText = 'Positive';
+          el.className = 'px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-semibold border border-emerald-500/30';
+        } else if (val === 0) {
+          el.innerText = 'Neutral';
+          el.className = 'px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-[10px] font-semibold border border-amber-500/30';
+        } else {
+          el.innerText = 'Warning';
+          el.className = 'px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-300 text-[10px] font-semibold border border-red-500/30';
+        }
       };
       badge('badgeHealth', prosCount - consCount);
       badge('badgeProfit', prosCount);
@@ -445,22 +606,46 @@
     function updateChart(data) {
       const ctx = document.getElementById('trendChart').getContext('2d');
       const quarters = data?.quarters;
-      let sales = [];
-      let profit = [];
-      let labels = [];
+      let sales = [], profit = [], labels = [];
 
       if (quarters && quarters.rows && quarters.columns) {
         labels = quarters.columns.slice(1);
-        const salesRow = quarters.rows.find(r => r[0] && String(r[0]).includes('Sales'));
+        const salesRow  = quarters.rows.find(r => r[0] && String(r[0]).includes('Sales'));
         const profitRow = quarters.rows.find(r => r[0] && (String(r[0]).includes('Net Profit') || String(r[0]).includes('Operating Profit')));
-        
-        if (salesRow) sales = salesRow.slice(1).map(v => v == null || v === '' ? null : parseFloat(String(v).replace(/,/g, '')));
+        if (salesRow)  sales  = salesRow.slice(1).map(v  => v == null || v === '' ? null : parseFloat(String(v).replace(/,/g, '')));
         if (profitRow) profit = profitRow.slice(1).map(v => v == null || v === '' ? null : parseFloat(String(v).replace(/,/g, '')));
       }
 
-      const clean = (arr) => arr.map(v => isNaN(v) ? null : v);
-      sales = clean(sales);
-      profit = clean(profit);
+      const clean = arr => arr.map(v => isNaN(v) ? null : v);
+      sales = clean(sales); profit = clean(profit);
+
+      const cfg = {
+        type: 'line',
+        data: { labels, datasets: [
+          { label: 'Sales',  data: sales,  borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#10b981', borderWidth: 2 },
+          { label: 'Profit', data: profit, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#3b82f6', borderWidth: 2 }
+        ]},
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(10,15,30,0.95)',
+              borderColor: 'rgba(255,255,255,0.1)',
+              borderWidth: 1,
+              titleColor: '#9ca3af',
+              bodyColor: '#e5e7eb',
+              padding: 12,
+              cornerRadius: 10
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#4b5563', font: { size: 10, family: 'Inter' } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.06)' } },
+            y: { ticks: { color: '#4b5563', font: { size: 10, family: 'Inter' } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.06)' } }
+          }
+        }
+      };
 
       if (trendChart) {
         trendChart.data.labels = labels;
@@ -468,32 +653,16 @@
         trendChart.data.datasets[1].data = profit;
         trendChart.update();
       } else {
-        trendChart = new Chart(ctx, {
-          type: 'line',
-          data: { labels, datasets: [
-            { label: 'Sales', data: sales, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5 },
-            { label: 'Profit', data: profit, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5 }
-          ]},
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { labels: { color: '#9ca3af', font: { size: 11 } } } },
-            scales: {
-              x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(75,85,99,0.2)' } },
-              y: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(75,85,99,0.2)' } }
-            }
-          }
-        });
+        trendChart = new Chart(ctx, cfg);
       }
     }
 
     window.initLLM = async function() {
-      const statusEl = document.getElementById('engineStatus');
-      const initBtn = document.getElementById('initLlmBtn');
-      const pulseDot = document.getElementById('pulseDot');
-      const coreDot = document.getElementById('coreDot');
+      const statusEl    = document.getElementById('engineStatus');
+      const initBtn     = document.getElementById('initLlmBtn');
+      const pulseDot    = document.getElementById('pulseDot');
+      const coreDot     = document.getElementById('coreDot');
       const engineLabel = document.getElementById('engineLabel');
-      const suggestedPrompts = document.getElementById('suggestedPrompts');
 
       initBtn.disabled = true;
       statusEl.innerText = "Downloading model weights...";
@@ -501,24 +670,23 @@
       try {
         const modelId = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
         engine = await webllm.CreateMLCEngine(modelId, {
-          initProgressCallback: (progress) => { statusEl.innerText = progress.text; }
+          initProgressCallback: p => { statusEl.innerText = p.text; }
         });
 
         statusEl.innerText = "LLM Engine Ready";
-        statusEl.className = "text-xs text-emerald-400 mt-0.5";
+        statusEl.className = "text-[10px] text-emerald-400 mt-0.5 font-medium";
         initBtn.classList.add("hidden");
         pulseDot.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
-        coreDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400";
+        coreDot.className  = "relative inline-flex rounded-full h-2 w-2 bg-emerald-400";
         engineLabel.innerText = "Ready";
-        engineLabel.className = "text-[10px] text-emerald-400 uppercase tracking-wide";
-        suggestedPrompts.classList.remove('hidden');
-
+        engineLabel.className = "text-[9px] text-emerald-400 uppercase tracking-widest font-semibold";
+        document.getElementById('suggestedPrompts').classList.remove('hidden');
         document.getElementById('userInput').disabled = false;
         document.getElementById('sendBtn').disabled = false;
       } catch (err) {
         console.error(err);
         statusEl.innerText = `Failed: ${err.message}`;
-        statusEl.className = "text-xs text-red-400 mt-0.5";
+        statusEl.className = "text-[10px] text-red-400 mt-0.5 font-medium";
         initBtn.disabled = false;
       }
     };
@@ -532,10 +700,10 @@
       appendChatMessage("user", prompt);
 
       const trimmedData = currentStockData ? JSON.parse(JSON.stringify(currentStockData)) : {};
-      if (trimmedData.company && trimmedData.company.raw_html) delete trimmedData.company.raw_html;
+      if (trimmedData.company?.raw_html) delete trimmedData.company.raw_html;
 
-      const systemPrompt = `You are a financial analyst copilot. 
-Analyze the provided JSON financial data for ${currentSymbol || 'the company'}. 
+      const systemPrompt = `You are a financial analyst copilot.
+Analyze the provided JSON financial data for ${currentSymbol || 'the company'}.
 
 Guidelines:
 - Be concise and direct. Use short bullet points.
@@ -545,24 +713,21 @@ Guidelines:
 Financial Data:
 ${JSON.stringify(trimmedData)}`;
 
-      const messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt }
-      ];
-
       const assistantBubble = appendChatMessage("assistant", "Thinking...");
 
       try {
         const chunks = await engine.chat.completions.create({
-          messages,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user",   content: prompt }
+          ],
           stream: true,
           max_tokens: 1500
         });
 
         let fullReply = "";
         for await (const chunk of chunks) {
-          const text = chunk.choices[0]?.delta?.content || "";
-          fullReply += text;
+          fullReply += chunk.choices[0]?.delta?.content || "";
           assistantBubble.innerText = fullReply;
         }
       } catch (err) {
@@ -572,8 +737,7 @@ ${JSON.stringify(trimmedData)}`;
     };
 
     window.sendSuggested = function(text) {
-      const inputEl = document.getElementById('userInput');
-      inputEl.value = text;
+      document.getElementById('userInput').value = text;
       sendMessage();
     };
   </script>
