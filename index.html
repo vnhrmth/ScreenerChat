@@ -870,16 +870,40 @@ function selectSymbol(symbol) {
       const trimmedData = currentStockData ? JSON.parse(JSON.stringify(currentStockData)) : {};
       if (trimmedData.company?.raw_html) delete trimmedData.company.raw_html;
 
+      function deepTrim(obj, depth = 0) {
+        if (!obj || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) {
+          if (obj.length > 20) return obj.slice(0, 20);
+          return obj.map(item => deepTrim(item, depth + 1));
+        }
+        const out = {};
+        const skipKeys = new Set(['raw_html', 'html', 'documents', 'links', 'url', 'image']);
+        for (const k of Object.keys(obj)) {
+          if (skipKeys.has(k)) continue;
+          const v = obj[k];
+          if (v && typeof v === 'object') {
+            out[k] = deepTrim(v, depth + 1);
+          } else {
+            out[k] = v;
+          }
+        }
+        return out;
+      }
+
+      const lightData = deepTrim(trimmedData);
+      const payload = JSON.stringify(lightData);
+
       const systemPrompt = `You are a financial analyst copilot.
 Analyze the provided JSON financial data for ${currentSymbol || 'the company'}.
 
 Guidelines:
 - Be concise and direct. Use short bullet points.
 - Focus on key financial ratios, revenue growth, debt levels, and profitability trends.
-- Keep responses concise so they complete fully without getting cut off.
+- If data is insufficient, say so explicitly.
+- Do not hallucinate numbers not present in the JSON.
 
-Financial Data:
-${JSON.stringify(trimmedData)}`;
+Financial Data (trimmed):
+${payload}`;
 
       const assistantBubble = appendChatMessage("assistant", "Thinking...");
 
