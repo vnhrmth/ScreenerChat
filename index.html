@@ -406,12 +406,15 @@
       try {
         const res = await fetch('./EQUITYLIST.csv');
         const text = await res.text();
-        const lines = text.split('\n').slice(2);
+        const lines = text.replace(/\r/g, '').split('\n').slice(2);
         equityList = lines
           .map(line => {
             const parts = line.split(',');
             if (parts.length < 2) return null;
-            return { symbol: parts[0].trim(), name: parts[1].trim() };
+            const symbol = parts[0].trim();
+            const name = parts[1].trim();
+            if (!symbol || !name) return null;
+            return { symbol, name };
           })
           .filter(r => r && r.symbol);
       } catch(e) { console.warn('Could not load equity list', e); }
