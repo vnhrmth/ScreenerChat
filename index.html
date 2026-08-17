@@ -111,6 +111,7 @@
           <button onclick="switchTab('balance-sheet')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="balance-sheet">Balance Sheet</button>
           <button onclick="switchTab('cash-flow')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="cash-flow">Cash Flow</button>
           <button onclick="switchTab('shareholding')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="shareholding">Shareholding</button>
+          <button onclick="switchTab('documents')" class="tab-btn px-3 py-2 text-[11px] font-medium text-gray-300 hover:text-white border-b-2 border-transparent" data-tab="documents">Documents</button>
         </div>
         <div class="p-3">
           <div id="tabContent" class="text-xs text-gray-300 max-h-64 overflow-y-auto">
@@ -283,6 +284,22 @@
       return html;
     }
 
+    function renderTableFromColumns(columns, rows) {
+      if (!columns || !rows || !rows.length) return '<p class="text-gray-400">No data</p>';
+      let html = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="text-gray-400 border-b border-gray-700">`;
+      columns.forEach(col => html += `<th class="py-1.5 px-2 text-[10px] uppercase tracking-wider font-medium whitespace-nowrap">${escapeHtml(col)}</th>`);
+      html += `</tr></thead><tbody>`;
+      rows.slice(0, 100).forEach(row => {
+        html += `<tr class="border-b border-gray-700/50 hover:bg-gray-700/20">`;
+        row.forEach(val => {
+          html += `<td class="py-1.5 px-2 text-[11px] text-gray-300 whitespace-nowrap">${escapeHtml(val == null ? '--' : String(val))}</td>`;
+        });
+        html += `</tr>`;
+      });
+      html += `</tbody></table></div>`;
+      return html;
+    }
+
     window.fetchCompany = async function() {
       const symbolInput = document.getElementById('symbol');
       const symbol = (symbolInput ? symbolInput.value.trim().toUpperCase() : '');
@@ -290,9 +307,10 @@
 
       setStatus('fetchStatus', `Fetching ${symbol}...`, 'warn');
       try {
-        const data = await apiFetch(`/company/${symbol}`);
+        const response = await apiFetch(`/company/${symbol}`);
+        const data = response?.company?.data || response?.data || response;
         currentSymbol = symbol;
-        currentStockData = { company: data };
+        currentStockData = response;
 
         document.getElementById('dataContext').value = JSON.stringify(currentStockData, null, 2);
         setStatus('fetchStatus', `Loaded ${symbol}`, 'success');
@@ -321,27 +339,27 @@
       const content = document.getElementById('tabContent');
       content.innerHTML = '<p class="text-gray-400">Loading...</p>';
       try {
-        let data;
-        if (tab === 'ratios') {
-          data = await apiFetch(`/company/${symbol}/ratios`);
-        } else if (tab === 'quarters') {
-          data = await apiFetch(`/company/${symbol}/quarters`);
-        } else if (tab === 'profit-loss') {
-          data = await apiFetch(`/company/${symbol}/profit-loss`);
-        } else if (tab === 'balance-sheet') {
-          data = await apiFetch(`/company/${symbol}/balance-sheet`);
-        } else if (tab === 'cash-flow') {
-          data = await apiFetch(`/company/${symbol}/cash-flow`);
-        } else if (tab === 'shareholding') {
-          data = await apiFetch(`/company/${symbol}/shareholding`);
-        } else {
-          data = await apiFetch(`/company/${symbol}`);
-        }
-        const src = data?.data || data?.company || data;
-        if (Array.isArray(src)) {
-          content.innerHTML = renderTable(src, tab);
-        } else if (src && typeof src === 'object') {
-          content.innerHTML = renderTable([src], tab);
+        const response = await apiFetch(`/company/${symbol}/${tab}`);
+        const src = response?.company?.data || response?.data || response;
+        const section = src?.[tab] || src;
+
+        if (tab === 'documents' && section && Array.isArray(section.links)) {
+          let html = '<div class="space-y-1">';
+          section.links.forEach(link => {
+            if (link.href) {
+              html += `<a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer" class="block text-emerald-400 hover:text-emerald-300 truncate">${escapeHtml(link.text || link.href)}</a>`;
+            } else {
+              html += `<p class="text-gray-400">${escapeHtml(link.text || '')}</p>`;
+            }
+          });
+          html += '</div>';
+          content.innerHTML = html;
+        } else if (section && typeof section === 'object' && section.columns && section.rows) {
+          content.innerHTML = renderTableFromColumns(section.columns, section.rows);
+        } else if (Array.isArray(section)) {
+          content.innerHTML = renderTable(section, tab);
+        } else if (section && typeof section === 'object') {
+          content.innerHTML = renderTable([section], tab);
         } else {
           content.innerHTML = '<p class="text-gray-400">No tabular data available</p>';
         }
@@ -375,53 +393,52 @@
         if (typeof v === 'number') return v.toLocaleString('en-IN', { maximumFractionDigits: 2 });
         return String(v);
       };
-      document.getElementById('metricMktCap').innerText = num(data.marketCap || data.market_cap || data.company?.marketCap || data.company?.market_cap);
-      document.getElementById('metricPE').innerText = num(data.pe || data.p_e || data.company?.pe || data.company?.p_e);
-      document.getElementById('metricROCE').innerText = num(data.roce || data.company?.roce);
-      document.getElementById('metricROE').innerText = num(data.roe || data.company?.roe);
+      const ratios = data?.overview?.top_ratios || {};
+      document.getElementById('metricMktCap').innerText = num(ratios['Market Cap']);
+      document.getElementById('metricPE').innerText = num(ratios['Stock P/E']);
+      document.getElementById('metricROCE').innerText = num(ratios['ROCE']);
+      document.getElementById('metricROE').innerText = num(ratios['ROE']);
     }
 
     function updateAnalytics(data) {
       const panel = document.getElementById('analyticsPanel');
       panel.classList.remove('hidden');
+      const analysis = data?.analysis || {};
+      const prosCount = Array.isArray(analysis.pros) ? analysis.pros.length : 0;
+      const consCount = Array.isArray(analysis.cons) ? analysis.cons.length : 0;
       const badge = (id, val) => {
         const el = document.getElementById(id);
         if (!el) return;
         if (val === null || val === undefined) { el.innerText = '--'; el.className = 'px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 text-[10px]'; return; }
-        const n = typeof val === 'number' ? val : parseFloat(val);
-        if (isNaN(n)) { el.innerText = '--'; el.className = 'px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 text-[10px]'; return; }
-        if (n > 0) { el.innerText = 'Positive'; el.className = 'px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-300 text-[10px] border border-emerald-700'; }
-        else if (n === 0) { el.innerText = 'Neutral'; el.className = 'px-2 py-0.5 rounded-full bg-amber-900/50 text-amber-300 text-[10px] border border-amber-700'; }
+        if (val > 0) { el.innerText = 'Positive'; el.className = 'px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-300 text-[10px] border border-emerald-700'; }
+        else if (val === 0) { el.innerText = 'Neutral'; el.className = 'px-2 py-0.5 rounded-full bg-amber-900/50 text-amber-300 text-[10px] border border-amber-700'; }
         else { el.innerText = 'Warning'; el.className = 'px-2 py-0.5 rounded-full bg-red-900/50 text-red-300 text-[10px] border border-red-700'; }
       };
-      badge('badgeHealth', data.financialHealth || data.company?.financialHealth || data.company?.financial_health);
-      badge('badgeProfit', data.profitability || data.company?.profitability);
-      badge('badgeCash', data.cashFlow || data.company?.cashFlow || data.company?.cash_flow);
+      badge('badgeHealth', prosCount - consCount);
+      badge('badgeProfit', prosCount);
+      badge('badgeCash', consCount);
     }
 
     function updateChart(data) {
       const ctx = document.getElementById('trendChart').getContext('2d');
-      const quarters = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'];
+      const quarters = data?.quarters;
       let sales = [];
       let profit = [];
-      const tryParse = (arr, key) => {
-        if (!Array.isArray(arr)) return null;
-        const vals = arr.map(item => {
-          if (Array.isArray(item)) return item[0];
-          if (item && typeof item === 'object') return item[key] || item.sales || item.profit || item.value || null;
-          return null;
-        }).filter(v => v !== null);
-        if (vals.length > 0) return vals.slice(-8);
-        return null;
-      };
-      const src = data.company || data;
-      const salesRaw = src.sales || src.revenue || src.quarterlySales || src.quarterly_revenue || src.financials?.sales || src.financials?.revenue;
-      const profitRaw = src.profit || src.netProfit || src.quarterlyProfit || src.quarterly_profit || src.financials?.profit || src.financials?.netProfit;
-      const parsedSales = tryParse(salesRaw, 'sales') || tryParse(salesRaw, 'revenue') || tryParse(salesRaw, 'value');
-      const parsedProfit = tryParse(profitRaw, 'profit') || tryParse(profitRaw, 'netProfit') || tryParse(profitRaw, 'value');
-      if (parsedSales && parsedSales.length > 0) sales = parsedSales;
-      if (parsedProfit && parsedProfit.length > 0) profit = parsedProfit;
-      const labels = quarters.slice(0, Math.max(sales.length, profit.length, 4));
+      let labels = [];
+
+      if (quarters && quarters.rows && quarters.columns) {
+        labels = quarters.columns.slice(1);
+        const salesRow = quarters.rows.find(r => r[0] && String(r[0]).includes('Sales'));
+        const profitRow = quarters.rows.find(r => r[0] && (String(r[0]).includes('Net Profit') || String(r[0]).includes('Operating Profit')));
+        
+        if (salesRow) sales = salesRow.slice(1).map(v => v == null || v === '' ? null : parseFloat(String(v).replace(/,/g, '')));
+        if (profitRow) profit = profitRow.slice(1).map(v => v == null || v === '' ? null : parseFloat(String(v).replace(/,/g, '')));
+      }
+
+      const clean = (arr) => arr.map(v => isNaN(v) ? null : v);
+      sales = clean(sales);
+      profit = clean(profit);
+
       if (trendChart) {
         trendChart.data.labels = labels;
         trendChart.data.datasets[0].data = sales;
