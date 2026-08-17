@@ -276,7 +276,7 @@
         html += `<tr class="border-b border-gray-700/50 hover:bg-gray-700/20">`;
         keys.forEach(k => {
           const val = row[k];
-          html += `<td class="py-1.5 px-2 text-[11px] text-gray-300">${escapeHtml(val == null ? '--' : String(val))}</td>`;
+          html += `<td class="py-1.5 px-2 text-[11px] text-gray-300">${escapeHtml(val == null ? '--' : typeof val === 'object' ? JSON.stringify(val) : String(val))}</td>`;
         });
         html += `</tr>`;
       });
@@ -291,13 +291,34 @@
       html += `</tr></thead><tbody>`;
       rows.slice(0, 100).forEach(row => {
         html += `<tr class="border-b border-gray-700/50 hover:bg-gray-700/20">`;
-        row.forEach(val => {
-          html += `<td class="py-1.5 px-2 text-[11px] text-gray-300 whitespace-nowrap">${escapeHtml(val == null ? '--' : String(val))}</td>`;
-        });
+        if (Array.isArray(row)) {
+          row.forEach(val => {
+            html += `<td class="py-1.5 px-2 text-[11px] text-gray-300 whitespace-nowrap">${escapeHtml(val == null ? '--' : typeof val === 'object' ? JSON.stringify(val) : String(val))}</td>`;
+          });
+        } else if (row && typeof row === 'object') {
+          Object.values(row).forEach(val => {
+            html += `<td class="py-1.5 px-2 text-[11px] text-gray-300 whitespace-nowrap">${escapeHtml(val == null ? '--' : typeof val === 'object' ? JSON.stringify(val) : String(val))}</td>`;
+          });
+        }
         html += `</tr>`;
       });
       html += `</tbody></table></div>`;
       return html;
+    }
+
+    function tryRenderAsTable(section) {
+      if (!section || typeof section !== 'object') return null;
+      if (section.columns && section.rows) return renderTableFromColumns(section.columns, section.rows);
+      if (Array.isArray(section)) return renderTable(section);
+      if (Array.isArray(section.rows) && section.rows.length && Array.isArray(section.rows[0])) return renderTableFromColumns(section.columns || [], section.rows);
+      const keys = Object.keys(section);
+      const allArrays = keys.every(k => Array.isArray(section[k]));
+      if (allArrays && keys.length > 0) {
+        const columns = keys;
+        const rows = section[keys[0]].map((_, i) => keys.map(k => section[k][i]));
+        return renderTableFromColumns(columns, rows);
+      }
+      return null;
     }
 
     window.fetchCompany = async function() {
@@ -361,14 +382,9 @@
           });
           html += '</div>';
           content.innerHTML = html;
-        } else if (section && typeof section === 'object' && section.columns && section.rows) {
-          content.innerHTML = renderTableFromColumns(section.columns, section.rows);
-        } else if (Array.isArray(section)) {
-          content.innerHTML = renderTable(section, tab);
-        } else if (section && typeof section === 'object') {
-          content.innerHTML = renderTable([section], tab);
         } else {
-          content.innerHTML = '<p class="text-gray-400">No tabular data available</p>';
+          const rendered = tryRenderAsTable(section);
+          content.innerHTML = rendered || `<pre class="text-[10px] text-gray-300 whitespace-pre-wrap">${escapeHtml(JSON.stringify(section, null, 2))}</pre>`;
         }
       } catch (err) {
         content.innerHTML = `<p class="text-red-400">Failed to load ${tab}: ${err.message}</p>`;
