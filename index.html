@@ -457,15 +457,24 @@ function showDropdown(results) {
       console.log(`Showing ${results.length} suggestions`);
     }
 
+    // function hideDropdown() {
+    //   document.getElementById('symbolDropdown').classList.add('hidden');
+    //   dropActiveIdx = -1;
+    // }
+
     function hideDropdown() {
       document.getElementById('symbolDropdown').classList.add('hidden');
       dropActiveIdx = -1;
     }
 
+
     function selectSymbol(symbol) {
       const input = document.getElementById('symbol');
       input.value = symbol;
-      hideDropdown();
+            // Modify your blur listener
+      document.getElementById('symbol').addEventListener('blur', () => {
+        setTimeout(() => hideDropdown(), 150);
+      });
       fetchCompany();
     }
 
