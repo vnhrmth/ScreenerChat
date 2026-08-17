@@ -328,6 +328,12 @@
       }
     };
 
+    const tabKeyMap = {
+      'profit-loss': 'profit_loss',
+      'balance-sheet': 'balance_sheet',
+      'cash-flow': 'cash_flow'
+    };
+
     window.switchTab = async function(tab, symbol) {
       if (!symbol) symbol = currentSymbol;
       if (!symbol) return;
@@ -341,7 +347,8 @@
       try {
         const response = await apiFetch(`/company/${symbol}/${tab}`);
         const src = response?.company?.data || response?.data || response;
-        const section = src?.[tab] || src;
+        const key = tabKeyMap[tab] || tab;
+        const section = src?.[key] || src;
 
         if (tab === 'documents' && section && Array.isArray(section.links)) {
           let html = '<div class="space-y-1">';
