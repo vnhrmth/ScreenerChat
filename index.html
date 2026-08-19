@@ -836,7 +836,8 @@ function selectSymbol(symbol) {
         engine = await webllm.CreateMLCEngine(modelId, {
           initProgressCallback: p => { statusEl.innerText = p.text; },
           chatOpts: {
-            context_window_size: 15000 // 👈 Increases the limit from 4096 to 8192 tokens
+            context_window_size: 2048,
+            sliding_window_size: 1024
           }
         });
         
@@ -871,51 +872,46 @@ function selectSymbol(symbol) {
       if (trimmedData.company?.raw_html) delete trimmedData.company.raw_html;
 
       const ratios = trimmedData?.company?.data?.overview?.top_ratios || trimmedData?.overview?.top_ratios || {};
-      const pros = (trimmedData?.company?.data?.analysis?.pros || trimmedData?.analysis?.pros || []).slice(0, 8);
-      const cons = (trimmedData?.company?.data?.analysis?.cons || trimmedData?.analysis?.cons || []).slice(0, 8);
+      const pros = (trimmedData?.company?.data?.analysis?.pros || trimmedData?.analysis?.pros || []).slice(0, 5);
+      const cons = (trimmedData?.company?.data?.analysis?.cons || trimmedData?.analysis?.cons || []).slice(0, 5);
       const quarters = trimmedData?.company?.data?.quarters || trimmedData?.quarters || null;
 
-      const lines = [];
-      if (Object.keys(ratios).length) lines.push('Key Ratios: ' + JSON.stringify(ratios));
-      if (pros.length) lines.push('Strengths: ' + pros.join('; '));
-      if (cons.length) lines.push('Risks: ' + cons.join('; '));
+      const parts = [];
+      if (Object.keys(ratios).length) parts.push('Ratios: ' + JSON.stringify(ratios));
+      if (pros.length) parts.push('Pros: ' + pros.join(' | '));
+      if (cons.length) parts.push('Cons: ' + cons.join(' | '));
       if (quarters?.columns?.length) {
-        const qLabels = quarters.columns.slice(1).join(', ');
-        const findRow = name => quarters.rows?.find(r => r[0] && String(r[0]).includes(name));
-        const sales = findRow('Sales') || findRow('Revenue');
-        const profit = findRow('Net Profit') || findRow('Operating Profit');
-        if (sales) lines.push('Sales Trend (' + qLabels + '): ' + sales.slice(1).join(', '));
-        if (profit) lines.push('Profit Trend (' + qLabels + '): ' + profit.slice(1).join(', '));
+        const labels = quarters.columns.slice(1).slice(0, 8).join(',');
+        const row = name => quarters.rows?.find(r => r[0] && String(r[0]).includes(name));
+        const sales = row('Sales') || row('Revenue');
+        const profit = row('Net Profit') || row('Operating Profit');
+        if (sales) parts.push('Sales:' + sales.slice(1, 1 + 8).join(','));
+        if (profit) parts.push('Profit:' + profit.slice(1, 1 + 8).join(','));
       }
-      const payload = lines.join('\n') || JSON.stringify(trimmedData);
+      let payload = parts.join('\n') || 'No data';
+      if (payload.length > 1800) payload = payload.slice(0, 1800) + '...';
 
-      const systemPrompt = `You are a financial analyst copilot.
-Analyze the provided financial summary for ${currentSymbol || 'the company'}.
-
-Guidelines:
-- Be concise and direct. Use short bullet points.
-- Focus on financial health, profitability, cash flow, and key risks.
-- If data is insufficient, say so explicitly.
-- Do not hallucinate numbers not present in the summary.
-
-Financial Summary:
-${payload}`;
+      const systemPrompt = `Financial analyst. Answer briefly using only the provided summary for ${currentSymbol || 'this company'}. Do not invent numbers.\n\n${payload}`;
 
       const assistantBubble = appendChatMessage("assistant", "Thinking...");
 
       try {
+        if (typeof engine.resetChat === 'function') {
+          engine.resetChat();
+        }
+        const messages = [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt.slice(0, 300) }
+        ];
         const chunks = await engine.chat.completions.create({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user",   content: prompt }
-          ],
+          messages,
           stream: true,
-          max_tokens: 2048
+          max_tokens: 1024
         });
 
         let fullReply = "";
         for await (const chunk of chunks) {
-          fullReply += chunk.choices[0]?.delta?.content || "";
+          fullReply += chunk.choices?.[0]?.delta?.content || chunk.text || "";
           assistantBubble.innerText = fullReply;
         }
       } catch (err) {
