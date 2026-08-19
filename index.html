@@ -899,9 +899,37 @@ function selectSymbol(symbol) {
         if (typeof engine.resetChat === 'function') {
           engine.resetChat();
         }
+
+        const overview = trimmedData?.company?.data?.overview || trimmedData?.overview || {};
+        const topRatios = overview?.top_ratios || {};
+        const analysis = trimmedData?.company?.data?.analysis || trimmedData?.analysis || {};
+        const pros = Array.isArray(analysis.pros) ? analysis.pros.slice(0, 4) : [];
+        const cons = Array.isArray(analysis.cons) ? analysis.cons.slice(0, 4) : [];
+        const quarters = trimmedData?.company?.data?.quarters || trimmedData?.quarters || null;
+
+        const lines = [];
+        lines.push('Company: ' + (currentSymbol || 'N/A'));
+        if (Object.keys(topRatios).length) lines.push('Ratios: ' + JSON.stringify(topRatios));
+        if (pros.length) lines.push('Strengths: ' + pros.join('; '));
+        if (cons.length) lines.push('Risks: ' + cons.join('; '));
+        if (quarters?.columns?.length) {
+          const labels = quarters.columns.slice(1).slice(0, 6).join(', ');
+          const row = name => quarters.rows?.find(r => r[0] && String(r[0]).includes(name));
+          const sales = row('Sales') || row('Revenue');
+          const profit = row('Net Profit') || row('Operating Profit');
+          if (sales) lines.push('Sales (' + labels + '): ' + sales.slice(1, 1 + 6).join(', '));
+          if (profit) lines.push('Profit (' + labels + '): ' + profit.slice(1, 1 + 6).join(', '));
+        }
+
+        const summary = lines.join('\n') || 'No financial data available for this company.';
+        const safePrompt = prompt.slice(0, 300);
+
+        const systemPrompt = `You are a financial analyst. You HAVE the following financial summary for ${currentSymbol || 'the company'}.
+Use ONLY this summary. Do NOT say you lack information.\n\n${summary}`;
+
         const messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: prompt.slice(0, 300) }
+          { role: "user", content: safePrompt }
         ];
         const chunks = await engine.chat.completions.create({
           messages,
